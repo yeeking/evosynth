@@ -7,13 +7,20 @@ To be more specific, EvoSynth is a sound synthesis system which uses an interact
 
 [Click to see Evosynth running](http://www.yeeking.net/evosynth)
 
+### Run it on your own server
+* Put the website folder on your server. 
+* edit the file website/assets/js/app_launch.js to reflect your settings. 
+* it probably works without the API back end, but... 
+* to allow saving etc. of circuits, edit ebsite/api/inc.php to reflect your server
 
 
-# build the minified library into the website folder 
-# yeah grunt etc. is better I am sure
+
+### build the minified library into the website folder 
+(yeah grunt etc. is better I am sure)
+
 ./build_evosynth.sh
 
-# the unit tests require mocha
+### the unit tests require mocha
 npm install -g mocha
 
 mocha tests/
