@@ -1,0 +1,22 @@
+{
+  "name": "evoaudioserve-client",
+  "version": "1.0.0",
+  "description": "This is the web based client for the evo audio serve system. It allows a user to interactively evolve sounds.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "chai": "^1.10.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+	"test":"cd tests && mocha gen.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@git.doc.gold.ac.uk:evoaudioserve/evoaudioserve-client.git"
+  },
+  "author": "",
+  "license": "ISC"
+}
