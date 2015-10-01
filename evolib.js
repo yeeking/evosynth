@@ -1,6 +1,15 @@
-var evolib_spec = {"load":function(){
+var evolib_spec = {load:function(){
     console.log("evolib loading...");
 
+    // private variables that maintain the state of the evolib
+    // such current population and so on
+
+    /** the current population */
+    var currentPopulation = [];
+    var currentSynthesizer = undefined;
+
+    // modules supplying the actual functionality. 
+    this.population_funcs = require('./modules/population.js');
     this.genome_funcs = require('./modules/genome.js');
     this.circuit_funcs = require("./modules/circuit.js");
     this.dsp_funcs = require("./modules/dsp.js");
@@ -14,15 +23,28 @@ var evolib_spec = {"load":function(){
 	}
 
 
-	// define the top level functions:
+	// define the top level functions that are directly exposed to users of the lib:
 
 	/** create new population of sounds. 
 	* size is how many circuits to generate
 	* synthesis model is the type of synthesis. Available models: 'modular', 'fm', 'physical_tube'
 	*/
-	this.newPopulation = function(size, synthesis_model){}
+	//this.newPopulation = function(size, synthesis_model){
+	this.newPopulation = function(size){
+		currentPopulation = this.population_funcs.newPopulation(size);
+	}
 	/** listen to a particular sound */
-	this.listen = function(ind){}
+	this.listen = function(ind){
+		// todo - check ind...
+		var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
+		var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+		if (currentSynthesizer != undefined){// something was already playing
+			 currentSynthesizer.stop();
+		}
+		currentSynthesizer = new_synth;
+		currentSynthesizer.start();
+			 
+	}
 	/** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
 	this.setListeningPosition = function(x, y){}
 	/** play the first circuit then interpolate the parameters to the second circuit in time seconds*/

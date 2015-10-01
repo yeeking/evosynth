@@ -147,7 +147,8 @@ module.exports = {
     }, 
 
     /** 
-     * generates a new population from the sent parents
+     * generates a new population from the sent parents. I am leaving this in genome funcs for compatibility 
+     * with the original paper about this system. However, all population related functions now take place in the population module.
      */
     generateNewPopulation : function(parents, size, gene_length, mutation_rate,mutation_size){
 	var next_gen = [];

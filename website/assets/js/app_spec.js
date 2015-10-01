@@ -264,9 +264,9 @@ var Evosynthapp = function (_private) {
 		    // generate an array of genomes
 		    data = [];
 		    for (var i=0; i<25; i++){
-			var dna = Evolib.genome_funcs.generateRandom(Evolib.circuit_funcs.gene_length * 40);
-			var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(dna);
-			data.push(spec);
+				var dna = Evolib.genome_funcs.generateRandom(Evolib.circuit_funcs.gene_length * 40);
+				var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(dna);
+				data.push(spec);
 		    }
 		}
 		else {
