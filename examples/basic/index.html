@@ -1,0 +1,28 @@
+<html>
+	<head>	
+		<script src="js/evolib.js"></script>
+		<script src="js/jquery-1.11.2.min.js"></script>
+		<script>
+		$(document).ready(function(){
+				var popSize = 10;
+				Evolib.newPopulation(popSize);
+
+				// add some buttons
+				for (var i=0;i<popSize;i++){
+					var button;
+					button = $("<button data-id='"+i+"'>circuit "+i+"</button>");
+					button.on('click', function(e){
+						id = $(e.target).data('id');
+						console.log("You clicked "+id);
+						Evolib.stopListening();
+						Evolib.listen(id);
+					});
+					$('body').append(button);
+				}
+			});
+
+		</script>		
+	</head>	
+	<body>
+	</body>
+</html>
