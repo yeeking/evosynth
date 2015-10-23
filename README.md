@@ -1,6 +1,9 @@
 
 Evosynth: Interactive Genetic Algorithm Sound Synthesis in the Browser!
 =======
+
+## ACM-CIE journal branch of evolib.
+
 Imagine a modular synth with 10s of modules that could be instantly wired up at random. Imagine then being able to combine or breed different circuits, or to create multiple variations of a circuit with subtle wiring changes. That's basically what evosynth does.
 
 To be more specific, EvoSynth is a sound synthesis system which uses an interactive genetic algorithm to search the space of all possible configurations of a set of oscillators and filters. It is based on an idea I first experimented with back in 2000 with a system I called AudioServe. You can read all about that system here: [AudioServe](http://www.yeeking.net/html/audioserve/abstract.html).
