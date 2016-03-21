@@ -1,0 +1,178 @@
+<html>
+<head>
+
+
+<script src="./assets/js/lib/jquery-1.11.2.min.js" type="text/javascript"></script> 
+<script src="./assets/js/evolib.js" type="text/javascript"></script>
+<script src="./assets/js/lib/recorder.js"></script>
+<script src="./assets/js/lib/jsrender.js" type="text/javascript"></script>
+
+
+ <body id="body" style='background:#000;text-color:#fff'>
+<button id="play">play</button>
+<br/>
+<button id="rec">rec</button>
+<br/>
+<button id="down">down</button>
+<br/>
+
+<div id="content" style="color:#fff">
+</div>
+
+ </body>
+
+<script id="sessions" type="text/x-jsrender">
+<ul>
+   {{for sessions}}
+   <li>
+   	<a class="js-show-sessions" data-id="session_{{:#index}}">session: {{:#index}} ({{:op_count}})
+   	</a>
+   	<ul style="display:none;" id="session_{{:#index}}">
+   		{{for ops}}
+   			<li>
+   			{{:datetime}} 
+   			<button class="js-play" data-id="{{:op_id}}">play</button>
+   			</li>
+   		{{/for}}
+   	</ul>
+   	</li>
+   {{/for}}
+   </ul>
+</script>
+
+
+ <script>
+// simple javascript that loads 
+// 
+var synthesizer;
+var sessions;
+
+$(document).ready(function () {
+	console.log("ready.");
+	$('#play').on('click', function(){
+		playRandomSynth();
+	});
+	$('#rec').on('click', function(){
+		startRecorder();
+	});
+	$('#down').on('click', function(){
+		stopRecorder();
+	});
+	console.log('loading sessions...');
+	$.get('sessions.json', function(res){
+		console.log('sessions loaded');
+		console.log(res.length);
+		//console.log(JSON.parse(res));
+		sessions = res;
+		renderSessions(sessions);
+		$('.js-show-sessions').on('click', function(event){
+			var id = $(event.target).data('id');
+			console.log('show: '+id);
+			$('#'+id).toggle();
+		});
+		$('.js-play').on('click', function(event){
+			var id = $(event.target).data('id');
+			console.log('play: '+id);
+			playSynthFromSession(id, sessions);
+			// var op = findOpId(id, sessions);
+			// console.log(op);
+			// var dna = op.breeder;
+			// var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(dna);
+			// console.log(spec);
+			// var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+			// if (synthesizer != undefined){
+			// 	synthesizer.stop();
+			// }
+			// synthesizer = new_synth;
+			// synthesizer.start();
+		});
+	})
+});
+
+function playSynthFromSession(data_id, sessions){
+	var op = findOpId(data_id, sessions);
+	console.log(op);
+	var dna = op.breeder;
+	var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(dna);
+	playSynthSpec(spec);
+
+	// console.log(spec);
+	// var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+	// if (synthesizer != undefined){
+	// 	synthesizer.stop();
+	// }
+	// synthesizer = new_synth;
+	// synthesizer.start();
+}
+
+function renderSessions(data){
+	var template = $.templates("#sessions");
+	htmlOutput = template.render({'sessions':data});
+	$('#content').html(htmlOutput);
+}
+
+function findOpId(op_id, sessions){
+	for (var i=0; i<sessions.length;i++){
+		for (var j=0;j<sessions[i].ops.length; j++){
+			if (sessions[i].ops[j].op_id == op_id){
+				console.log("found "+op_id);
+				return sessions[i].ops[j];
+			}
+		}	
+	}
+	return false;
+}
+
+function playRandomSynth(){
+	console.log("playTest called");
+	var dna = Evolib.genome_funcs.generateRandom(Evolib.circuit_funcs.gene_length * 40);
+	console.log(dna);
+	var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(dna);
+	playSynthSpec(spec);
+}
+
+function playSynthSpec(spec){
+	stopSynth(();
+	var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+	synthesizer = new_synth;
+	synthesizer.start();
+}
+function stopSynth(){
+	if (synthesizer!=undefined){
+		synthesizer.stop();
+	}
+}
+
+function startRecorder(){
+	console.log("startRecorder");
+
+	source = Evolib.dsp_funcs.record_point;
+	recorder = new Recorder(source, {workerPath:'assets/js/lib/recordWorker.js'});
+	recorder && recorder.record();
+}
+
+function stopRecorder(){
+	console.log("stopping recoder");
+	 recorder && recorder.stop();
+	 recorder && recorder.exportWAV(function(blob){
+	 	console.log(blob);
+		 var hf = document.createElement('a');
+	     //var hf = {};
+	     var url = URL.createObjectURL(blob);
+	     console.log(url);
+	     hf.href = url;
+	     hf.text = new Date().toISOString() + '.wav';
+	     hf.id = hf.text ;
+	     document.getElementById('body').appendChild(hf);
+	     //$('#dl').html('<a href="'+url+'">download</a>');
+		 //hf.innerHTML = hf.download;
+		 //document.getElementById('body').appendChild(hf);
+	});
+}
+
+
+
+
+</script>
+
+ </html>
