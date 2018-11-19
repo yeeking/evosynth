@@ -7,11 +7,12 @@
     "test": "tests"
   },
   "dependencies": {
-    "chai": "^1.10.0"
+    "chai": "^1.10.0",
+    "mocha": "^5.2.0"
   },
   "devDependencies": {},
   "scripts": {
-	"test":"cd tests && mocha gen.js"
+    "test": "cd tests && mocha gen.js"
   },
   "repository": {
     "type": "git",
