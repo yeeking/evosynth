@@ -12,7 +12,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "cd tests && mocha gen.js"
+    "test": "cd tests && mocha *.js"
   },
   "repository": {
     "type": "git",

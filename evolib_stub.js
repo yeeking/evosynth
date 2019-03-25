@@ -29,8 +29,8 @@ var evolib_spec = {load:function(){
 	* synthesis model is the type of synthesis. Available models: 'modular', 'fm', 'physical_tube'
 	*/
 	//this.newPopulation = function(size, synthesis_model){
-	this.newPopulation = function(size){
-		currentPopulation = this.population_funcs.newPopulation(size);
+	this.newPopulation = function(popSize, synthSize){
+		currentPopulation = this.population_funcs.newPopulation(popSize, synthSize);
 	}
 	/** listen to a particular sound */
 	this.listen = function(ind){
@@ -77,5 +77,5 @@ var evolib_spec = {load:function(){
 }}
 
 
-console.log("Here goes nothing");
+//console.log("Here goes nothing");
 window.Evolib = evolib_spec.load();
