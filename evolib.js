@@ -18,8 +18,10 @@ var evolib_spec = {load:function(){
     try {
     var context = new (window.AudioContext || window.webkitAudioContext)();
     this.dsp_funcs.setContext(context);
+    console.log("evolib loaded!");
 	} catch(error){
-		console.log("Error initialisting audio context. Evollib will not work...");
+    alert("Evollb could not intialise audio context.")
+		//console.log("Error initialisting audio context. Evollib will not work...");
 	}
 
 
@@ -34,21 +36,29 @@ var evolib_spec = {load:function(){
 		currentPopulation = this.population_funcs.newPopulation(popSize, synthSize);
 	}
 	/** listen to a particular sound */
-	this.listen = function(ind){
+	this.play = function(ind){
 		// todo - check ind...
 		var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
 		var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
-		this.stopListening();
+		this.stop();
 		currentSynthesizer = new_synth;
 		currentSynthesizer.start();
 
 	}
 	/** stop playing the sound */
-	this.stopListening = function(){
+	this.stop = function(){
 		if (currentSynthesizer != undefined){// something was already playing
 			 currentSynthesizer.stop();
 		}
 	}
+/**
+ * Evolve the population from the selected breedIds, which refer to
+ * indexes of sounds you want in the current population, e.g. [0,1] for the
+ * first two.
+  */
+  this.evolve = function(breedIds, mutationRate, mutationSize){
+    currentPopulation = this.population_funcs.breedPopulation(currentPopulation, breedIds, mutationRate, mutationSize);
+  }
 
 	/** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
 	this.setListeningPosition = function(x, y){}
@@ -59,10 +69,7 @@ var evolib_spec = {load:function(){
 	this.select = function(ind){}
 	/** unselect an individual for breeding */
 	this.unselect = function(ind){}
-	/** breed from the currently selected individuals. the modes object specifies how the breeding should work
-	* {'point', 'grow', 'shrink', 'cross'}. If not specified, does a bit of everything
-	*/
-	this.breed = function(modes){}
+
 	/** returns a nodes and edges description of the circuit, suitable foe visualisation
 	* e.g. {nodes:[{id:10, type:'sin', x:0.1, y:0.6}, ... ],
 	*       edges:[{from:10, to:2, bias:0.4}, ...]}
@@ -82,402 +89,438 @@ var evolib_spec = {load:function(){
 window.Evolib = evolib_spec.load();
 
 },{"./modules/circuit.js":2,"./modules/dsp.js":3,"./modules/genome.js":4,"./modules/population.js":5}],2:[function(require,module,exports){
-/** 
+/**
  * functions for generating circuits specifications
  */
 module.exports = {
-    /** used to generate unique module indexes in conjunction with getModuleId */
-    //gene_length: 8, 
-    gene_length: 10, 
-    /** top level genome parsing function which converts a genome into a set of modules and wires*/
-    genomeToModuleAndWireSpecs : function(genome){
-	var mod_specs = this.genomeToModuleSpecs(genome.dna);
-	var wire_specs = this.moduleSpecToWireSpec(mod_specs);
-	return {"modules":mod_specs, "wires":wire_specs, "genome":genome};
-    }, 
+  /** used to generate unique module indexes in conjunction with getModuleId */
+  //gene_length: 8,
+  gene_length: 10,
+  /** top level genome parsing function which converts a genome into a set of modules and wires*/
+  genomeToModuleAndWireSpecs: function(genome) {
+    var mod_specs = this.genomeToModuleSpecs(genome.dna);
+    var wire_specs = this.moduleSpecToWireSpec(mod_specs);
+    return {
+      "modules": mod_specs,
+      "wires": wire_specs,
+      "genome": genome
+    };
+  },
 
-    /** converts a single gene into a module spec, describing the properties of the module encoded by that gene*/
-    geneToModuleSpec : function(gene){
-	var type, sub, x, y, t1, t2, r,  start_p1, start_p2, connect_to_input, available_inputs;
-	type = this.parseHelpers.getModuleType(gene[0]);
-	sub = this.parseHelpers.getModuleSubType(gene[1], type);
-	x = gene[2];//this.parseHelpers.normalise(gene[2], 0, 1, 0, grid_size);
-	y = gene[3];//this.parseHelpers.normalise(gene[3], 0, 1, 0, grid_size);
-	t1 = this.parseHelpers.getTheta(gene[4]);
-	t2 = this.parseHelpers.getTheta(gene[5]);
-	r = gene[6];//* 2; //this.parseHelpers.normalise(gene[6], 0, 1, 0, grid_size);
-	start_p1 = gene[7]; // allows the module to be configured with a starter settings, e.g. starting freq
-	start_p2 = gene[8]; // another starter settings
-	
-	// in port, the port this mod will connnect to on other modules  is normalised at genome intepretation time
-	// as it depends upon the number of ports available on that module.
-	connect_to_input = gene[9];
-	// this is the number of ports this module has
-	available_inputs = this.parseHelpers.getModuleInputNames(type, sub);
-	var spec = 
-	    {
-		"module_id":this.parseHelpers.getModuleId(),  
-		"type":type, "sub_type":sub, "x":x, "y":y, "theta1":t1, "theta2":t2, "radius":r, "connect_to_input":connect_to_input, 
-		"start_parameter_1":start_p1, "start_parameter_2":start_p2,  
-		"available_inputs":available_inputs
-	    }
-	return spec;
-    }, 
+  /** converts a single gene into a module spec, describing the properties of the module encoded by that gene*/
+  geneToModuleSpec: function(gene) {
+    var type, sub, x, y, t1, t2, r, start_p1, start_p2, connect_to_input, available_inputs;
+    type = this.parseHelpers.getModuleType(gene[0]);
+    sub = this.parseHelpers.getModuleSubType(gene[1], type);
+    x = gene[2]; //this.parseHelpers.normalise(gene[2], 0, 1, 0, grid_size);
+    y = gene[3]; //this.parseHelpers.normalise(gene[3], 0, 1, 0, grid_size);
+    t1 = this.parseHelpers.getTheta(gene[4]);
+    t2 = this.parseHelpers.getTheta(gene[5]);
+    r = gene[6]; //* 2; //this.parseHelpers.normalise(gene[6], 0, 1, 0, grid_size);
+    start_p1 = gene[7]; // allows the module to be configured with a starter settings, e.g. starting freq
+    start_p2 = gene[8]; // another starter settings
+
+    // in port, the port this mod will connnect to on other modules  is normalised at genome intepretation time
+    // as it depends upon the number of ports available on that module.
+    connect_to_input = gene[9];
+    // this is the number of ports this module has
+    available_inputs = this.parseHelpers.getModuleInputNames(type, sub);
+    var spec = {
+      "module_id": this.parseHelpers.getModuleId(),
+      "type": type,
+      "sub_type": sub,
+      "x": x,
+      "y": y,
+      "theta1": t1,
+      "theta2": t2,
+      "radius": r,
+      "connect_to_input": connect_to_input,
+      "start_parameter_1": start_p1,
+      "start_parameter_2": start_p2,
+      "available_inputs": available_inputs
+    }
+    return spec;
+  },
 
 
-    
-    /** converts an array of module specs as retrieved from
-     * this.genomeToModuleSpecs into an array of wire specs describing
-     * of a set of wires connecting them based on the connection
-     * radii*/
-    moduleSpecToWireSpec : function(specs){
-	var wires = [];
-	for (var i=0;i<specs.length;i++){
-	    // check from module i-1 to module 0 to see if module[i] should connect
-	    var new_mod = specs[i];
-	    for (j = i-1; j >= 0; j--){
-		var old_mod = specs[j];
-		//if (this.isPointInArc(px, py, ax, ay, theta1, theta2, radius){
-		if (this.isPointInArc(old_mod.x, old_mod.y, 
-				      new_mod.x, new_mod.y, new_mod.theta1, new_mod.theta2, new_mod.radius)){
-		    var in_port = Math.round(this.parseHelpers.normalise(new_mod.connect_to_input, 0, 1, 0, 
-									 old_mod.available_inputs.length-1));
-		    in_port = old_mod.available_inputs[in_port];
-		    wires.push({"x1":new_mod.x, 
-				"y1":new_mod.y, 
-				"x2":old_mod.x, 
-				"y2":old_mod.y, 
-				"out_mod_id":new_mod.module_id,  
-				"in_mod_id":old_mod.module_id, 
-				"in_port_label":in_port});
-		}
-	    }
-	}
-	return wires;
-    }, 
-    /** tests if point x1, y2 is in the arc centred at x2, y2, with
-     * range theta1 to theta2 radians with sent radius*/
-    isPointInArc : function(px, py, ax, ay, theta1, theta2, radius){
-	// 1. convert theta1 and theta2 to highest and lowest angles.
-	var t1, t2;
-	if (theta1 > theta2) {t1 = theta2;t2 = theta1}
-	else t1 = theta1; t2 = theta2;
-	// two tests:
-	// 2. is distance from x1,y1 to x2,y2 < radius
-	var dist = this.calcDistance(px, py, ax, ay);
-	//console.log("distance "+dist+" radius "+radius);
-	if (dist > radius){return false;}
-	// 3. angle from north at x2, y2 -> x1,y1 is > theta1 and < theta2
-	var angle = this.calcAngleFromNorth(ax, ay, px, py);
-	//console.log("angle "+angle+" between? "+t1+" and "+t2);
-	if (angle > t1 && angle < t2){return true;}
-	return false;
+
+  /** converts an array of module specs as retrieved from
+   * this.genomeToModuleSpecs into an array of wire specs describing
+   * of a set of wires connecting them based on the connection
+   * radii*/
+  moduleSpecToWireSpec: function(specs) {
+    var wires = [];
+    for (var i = 0; i < specs.length; i++) {
+      // check from module i-1 to module 0 to see if module[i] should connect
+      var new_mod = specs[i];
+      for (j = i - 1; j >= 0; j--) {
+        var old_mod = specs[j];
+        //if (this.isPointInArc(px, py, ax, ay, theta1, theta2, radius){
+        if (this.isPointInArc(old_mod.x, old_mod.y,
+            new_mod.x, new_mod.y, new_mod.theta1, new_mod.theta2, new_mod.radius)) {
+          var in_port = Math.round(this.parseHelpers.normalise(new_mod.connect_to_input, 0, 1, 0,
+            old_mod.available_inputs.length - 1));
+          in_port = old_mod.available_inputs[in_port];
+          wires.push({
+            "x1": new_mod.x,
+            "y1": new_mod.y,
+            "x2": old_mod.x,
+            "y2": old_mod.y,
+            "out_mod_id": new_mod.module_id,
+            "in_mod_id": old_mod.module_id,
+            "in_port_label": in_port
+          });
+        }
+      }
+    }
+    return wires;
+  },
+  /** tests if point x1, y2 is in the arc centred at x2, y2, with
+   * range theta1 to theta2 radians with sent radius*/
+  isPointInArc: function(px, py, ax, ay, theta1, theta2, radius) {
+    // 1. convert theta1 and theta2 to highest and lowest angles.
+    var t1, t2;
+    if (theta1 > theta2) {
+      t1 = theta2;
+      t2 = theta1
+    } else t1 = theta1;
+    t2 = theta2;
+    // two tests:
+    // 2. is distance from x1,y1 to x2,y2 < radius
+    var dist = this.calcDistance(px, py, ax, ay);
+    //console.log("distance "+dist+" radius "+radius);
+    if (dist > radius) {
+      return false;
+    }
+    // 3. angle from north at x2, y2 -> x1,y1 is > theta1 and < theta2
+    var angle = this.calcAngleFromNorth(ax, ay, px, py);
+    //console.log("angle "+angle+" between? "+t1+" and "+t2);
+    if (angle > t1 && angle < t2) {
+      return true;
+    }
+    return false;
+  },
+  /** calcualte the angle from north at x1,y1 to x2,y2 */
+  calcAngleFromNorth: function(x1, y1, x2, y2) {
+    var angle = this.calcAngle(x1, y1, x2, y2);
+    var add;
+    // now work out what to add to the angle so it is taken from north
+    // by identifying which quadrant x2, y2 is in relative to
+    // x1, y1
+    // NE
+    if (x2 >= x1 && y2 <= y1) {
+      add = 0;
+    }
+    // SE -> add 90 degrees or PI / 2 radians
+    if (x2 >= x1 && y2 > y1) {
+      add = Math.PI / 2;
+    }
+    // SW -> add 180 degress or PI radians
+    if (x2 < x1 && y2 > y1) {
+      add = Math.PI;
+    }
+    // NW -> add 270 degrees or PI / 4 * 3 radians
+    if (x2 < x1 && y2 <= y1) {
+      add = (Math.PI / 2) * 3;
+    }
+    return angle + add;
+  },
+
+  /** calculate the angle between two points*/
+  calcAngle: function(x1, y1, x2, y2) {
+    // treat x2, y2 as the origin
+    var a, b, c, sin_theta;
+    a = Math.abs(y2 - y1);
+    b = Math.abs(x2 - x1);
+    //console.log("a is "+a);
+    //console.log("b is "+b);
+
+    c = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+    sin_theta = a / c;
+    //console.log("sin theta is "+sin_theta);
+    // now convert from sin_theta to theta
+    //console.log(Math.asin(sin_theta));
+    angle = Math.asin(sin_theta);
+    return angle;
+  },
+  /** calculate the distance between two points */
+  calcDistance: function(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+  },
+
+  /** converts a complete genome into an array of module specs*/
+  genomeToModuleSpecs: function(genome) {
+    var gene_count = genome.length / this.gene_length;
+    var specs = [];
+    for (var ind = 0; ind < gene_count; ind++) {
+      var s, e;
+      s = ind * this.gene_length;
+      e = s + this.gene_length;
+      // maybe we'll use this:
+      // http://jsperf.com/new-array-vs-splice-vs-slice/31
+      // to speed it up but this is cleaner for now.
+      gene = genome.slice(s, e);
+      specs[ind] = this.geneToModuleSpec(gene);
+    }
+    return specs;
+  },
+  parseHelpers: {
+    module_id: 1,
+    getModuleId: function() {
+      this.module_id++;
+      return this.module_id;
     },
-    /** calcualte the angle from north at x1,y1 to x2,y2 */
-    calcAngleFromNorth : function(x1, y1, x2, y2){
-	var angle = this.calcAngle(x1, y1, x2, y2);
-	var add;
-	// now work out what to add to the angle so it is taken from north
-	// by identifying which quadrant x2, y2 is in relative to 
-	// x1, y1
-	// NE
-	if (x2 >= x1 && y2 <= y1){add = 0;}
-	// SE -> add 90 degrees or PI / 2 radians
-	if (x2 >= x1 && y2 > y1){add = Math.PI / 2;}
-	// SW -> add 180 degress or PI radians
-	if (x2 < x1 && y2 > y1){add = Math.PI;}
-	// NW -> add 270 degrees or PI / 4 * 3 radians
-	if (x2 < x1 && y2 <= y1){add = (Math.PI / 2)  * 3;}
-	return angle + add;
-    }, 
-    
-    /** calculate the angle between two points*/
-    calcAngle : function(x1, y1, x2, y2){
-	// treat x2, y2 as the origin
-	var a, b, c, sin_theta;
-	a = Math.abs(y2 - y1);
-	b = Math.abs(x2 - x1);
-	//console.log("a is "+a);
-	//console.log("b is "+b);
-
-	c = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-	sin_theta = a / c;
-	//console.log("sin theta is "+sin_theta);
-	// now convert from sin_theta to theta
-	//console.log(Math.asin(sin_theta));
-	angle = Math.asin(sin_theta);
-	return angle;
-    }, 
-    /** calculate the distance between two points */
-    calcDistance : function(x1, y1, x2, y2){
-	return Math.sqrt(Math.pow((x2 - x1), 2) +  Math.pow((y2 - y1), 2));
-    }, 
-
-    /** converts a complete genome into an array of module specs*/
-    genomeToModuleSpecs : function(genome){
-	var gene_count = genome.length / this.gene_length;
-	var specs = [];
-	for (var ind = 0; ind < gene_count; ind ++){
-	    var s, e;
-	    s = ind * this.gene_length; 
-	    e = s + this.gene_length;
-	    // maybe we'll use this:
-	    // http://jsperf.com/new-array-vs-splice-vs-slice/31
-	    // to speed it up but this is cleaner for now.
-	    gene = genome.slice(s, e);
-	    specs[ind] = this.geneToModuleSpec(gene);
-	}
-	return specs;
-    }, 
-    parseHelpers: {
-	module_id: 1, 
-	getModuleId: function(){
-	    this.module_id ++;
-	    return this.module_id;
-	}, 
-	/** top level module types*/
-	getModuleType: function(val){
-	    if (val < 0.65){
-		return "oscillator";
-	    }
-	    else {
-		return "filter";
-	    }	    
-	}, 
-	/** types within a module type*/
-	getModuleSubType: function(val, module_type){
-	    var osc_types = ["sine", "square", "sawtooth", "triangle"];
-	    var filter_types = ["lowpass", "highpass", "bandpass", "lowshelf", "highshelf", "allpass", "notch"];
-	    if (module_type == "oscillator"){
-		var sub_types = osc_types;
-	    }
-	    if (module_type == "filter"){
-		var sub_types = filter_types;
-	    }
-	    //console.log(val);
-	    val = Math.round(val * (sub_types.length-1));
-	    //console.log(val);
-	    return sub_types[val];
-	},
-	/** inputs for different moduies + sub types. Need cases for all things*/
-	getModuleInputNames: function(type, sub_type){
-	    if (type == "oscillator"){
-		// freq ana amp
-		return ["frequency", "gain"];
-	    }
-	    if (type == "filter"){
-		// filter input, freq, Q, gain
-		return ["filter_in", "frequency", "q", "gain"];
-	    }
-	}, 
-	/** connection radii*/
-	getTheta: function(val){
-	    return this.normalise(val, 0, 1, 0, Math.PI * 2);
-	}, 
-	/** utility function*/
-	normalise: function(val1, min1, max1, min2, max2){
-	    // normalise to 0-1
-	    val1 = val1 - min1;
-	    range1 = max1 - min1; 
-	    val1 /= range1;
-	    // scale to the new range
-	    range2 = max2 - min2;
-	    val1 = val1 * range2;
-	    // putin the offset
-	    val1 += min2;
-	    return val1
-	}
-    }, 
+    /** top level module types*/
+    getModuleType: function(val) {
+      if (val < 0.65) {
+        return "oscillator";
+      } else {
+        return "filter";
+      }
+    },
+    /** types within a module type*/
+    getModuleSubType: function(val, module_type) {
+      var osc_types = ["sine", "square", "sawtooth", "triangle"];
+      var filter_types = ["lowpass", "highpass", "bandpass", "lowshelf", "highshelf", "allpass", "notch"];
+      if (module_type == "oscillator") {
+        var sub_types = osc_types;
+      }
+      if (module_type == "filter") {
+        var sub_types = filter_types;
+      }
+      //console.log(val);
+      val = Math.round(val * (sub_types.length - 1));
+      //console.log(val);
+      return sub_types[val];
+    },
+    /** inputs for different moduies + sub types. Need cases for all things*/
+    getModuleInputNames: function(type, sub_type) {
+      if (type == "oscillator") {
+        // freq ana amp
+        return ["frequency", "gain"];
+      }
+      if (type == "filter") {
+        // filter input, freq, Q, gain
+        return ["filter_in", "frequency", "q", "gain"];
+      }
+    },
+    /** connection radii*/
+    getTheta: function(val) {
+      return this.normalise(val, 0, 1, 0, Math.PI * 2);
+    },
+    /** utility function*/
+    normalise: function(val1, min1, max1, min2, max2) {
+      // normalise to 0-1
+      val1 = val1 - min1;
+      range1 = max1 - min1;
+      val1 /= range1;
+      // scale to the new range
+      range2 = max2 - min2;
+      val1 = val1 * range2;
+      // putin the offset
+      val1 += min2;
+      return val1
+    }
+  },
 
 
 }
 
 },{}],3:[function(require,module,exports){
 /**
-* function for converting circuit specifications into DSP circuits
-*/
+ * function for converting circuit specifications into DSP circuits
+ */
 module.exports = {
-    /** audio context singleton innit */
-    audio_context:false, 
-    osc_freq_max:200, 
-    filt_freq_max:2000, 
-    setContext: function(_context){
-	this.audio_context = _context;
-    }, 
-    /** top level function that can convert a circuit specification
-     * with wire and module properties into a full synthesizer that
-     * can be started and stopped.*/
-    moduleAndWireSpecToSynthesizer : function(full_spec){
-	var synthesizer = {"start":function(){}, 
-			   "stop":function(){}, 
-			   "subgraphs":{}, "fx":{}};
+  /** audio context singleton innit */
+  audio_context: false,
+  osc_freq_max: 200,
+  filt_freq_max: 2000,
+  setContext: function(_context) {
+    this.audio_context = _context;
+  },
+  /** top level function that can convert a circuit specification
+   * with wire and module properties into a full synthesizer that
+   * can be started and stopped.*/
+  moduleAndWireSpecToSynthesizer: function(full_spec) {
+    var synthesizer = {
+      "start": function() {},
+      "stop": function() {},
+      "subgraphs": {},
+      "fx": {}
+    };
 
-	// generate the actual web audio api nodes and store them to the sub graphs array
-	for (var i=0;i<full_spec.modules.length; i++){
-	    var mod_spec = full_spec.modules[i];
-	    var key = "module_"+mod_spec.module_id;
-	    synthesizer.subgraphs[key] = this.getModuleSubGraph(mod_spec.type, mod_spec.sub_type, 
-								mod_spec.start_parameter_1, 
-								mod_spec.start_parameter_2, 
-								mod_spec.module_id);
-	}
-	// now create the compressor for the synth output
-	var compressor = this.audio_context.createDynamicsCompressor();
-	synthesizer.fx["compressor"] = compressor;
-	var reverb = this.audio_context.createConvolver();
-	synthesizer.fx["reverb"] = reverb;
-	// interpret the wiring into connections between the webaudio nodes
-	// generate the actual web audio api nodes and store them to the sub graphs array
-	for (var i=0;i<full_spec.wires.length; i++){
-	    var wire_spec = full_spec.wires[i];
-	    var from_key, to_key;
-	    var out_node = synthesizer.subgraphs["module_"+wire_spec.out_mod_id].output;
-	    var in_module_id = "module_"+ wire_spec.in_mod_id;
-	    var in_label = wire_spec.in_port_label;
-	    var input = synthesizer.subgraphs[in_module_id].inputs[in_label];
-	    out_node.connect(input);
-	}
-	
-	// build the start function that is used to start the synth playing
-	var that = this;
-	synthesizer.start = function(){
-	    var keys = Object.keys(synthesizer.subgraphs);
-	    for (var i=0;i<keys.length;i++){
-		if (synthesizer.subgraphs[keys[i]].output != false){// got a graph
-		    synthesizer.subgraphs[keys[i]].start();
-		    //synthesizer.subgraphs[keys[i]].output.connect(that.audio_context.destination);
-		}
-	    }
-	    // now create a reverb and a compressor
-	    var compressor = synthesizer.fx["compressor"];
-	    
-	    //var reverb = synthesizer.fx["reverb"];
-	    // we connect the first module to the output as that is likely to be the most connected one
-	    synthesizer.subgraphs[keys[0]].output.connect(compressor);
-	    //reverb.connect(compressor);
-	    compressor.connect(that.audio_context.destination);
-	    // stash the final point of the synthesis chain 
-	    // so we can access it later.
-	    that.record_point = compressor;
-	}
-	// this funciton is called when we want to stop the synth
-	// i.e.  
-	synthesizer.stop = function(){
-	    var keys = Object.keys(synthesizer.subgraphs);
-	    for (var i=0;i<keys.length;i++){
-		if (synthesizer.subgraphs[keys[i]].output != false){// got a graph
-		    synthesizer.subgraphs[keys[i]].stop();
-		    //synthesizer.subgraphs[keys[i]].output.connect(that.audio_context.destination);
-		}
-	    }
-	    // disconnect the first node, which should allow it to be GC'd 
-	    synthesizer.subgraphs[keys[0]].output.disconnect();
-	    // disconnect the compressor
-	    //synthesizer.fx["reverb"].disconnect();
-	    synthesizer.fx["compressor"].disconnect();
-	}
-	return synthesizer;
-    }, 
+    // generate the actual web audio api nodes and store them to the sub graphs array
+    for (var i = 0; i < full_spec.modules.length; i++) {
+      var mod_spec = full_spec.modules[i];
+      var key = "module_" + mod_spec.module_id;
+      synthesizer.subgraphs[key] = this.getModuleSubGraph(mod_spec.type, mod_spec.sub_type,
+        mod_spec.start_parameter_1,
+        mod_spec.start_parameter_2,
+        mod_spec.module_id);
+    }
+    // now create the compressor for the synth output
+    var compressor = this.audio_context.createDynamicsCompressor();
+    synthesizer.fx["compressor"] = compressor;
+    var reverb = this.audio_context.createConvolver();
+    synthesizer.fx["reverb"] = reverb;
+    // interpret the wiring into connections between the webaudio nodes
+    // generate the actual web audio api nodes and store them to the sub graphs array
+    for (var i = 0; i < full_spec.wires.length; i++) {
+      var wire_spec = full_spec.wires[i];
+      var from_key, to_key;
+      var out_node = synthesizer.subgraphs["module_" + wire_spec.out_mod_id].output;
+      var in_module_id = "module_" + wire_spec.in_mod_id;
+      var in_label = wire_spec.in_port_label;
+      var input = synthesizer.subgraphs[in_module_id].inputs[in_label];
+      out_node.connect(input);
+    }
 
-    /** wires the sent two modules together according to the wire spec*/
-    wireModulesTogether : function(subgraph_dict, wire_spec){
-	
-    }, 
+    // build the start function that is used to start the synth playing
+    var that = this;
+    synthesizer.start = function() {
+      var keys = Object.keys(synthesizer.subgraphs);
+      for (var i = 0; i < keys.length; i++) {
+        if (synthesizer.subgraphs[keys[i]].output != false) { // got a graph
+          synthesizer.subgraphs[keys[i]].start();
+          //synthesizer.subgraphs[keys[i]].output.connect(that.audio_context.destination);
+        }
+      }
+      // now create a reverb and a compressor
+      var compressor = synthesizer.fx["compressor"];
 
-    /** returns a web audio sub graph this module type and subtype,
-     * including appropriately connected gain nodes*/
-    getModuleSubGraph : function(type, sub_type, start_param1, start_param2, module_id){
-//    getModuleSubGraph : function(type, sub_type, module_id){
-	var subgraph = {"inputs":{},
-			"output":false, 
-			"nodes":[], 
-		       "module_id":module_id, 
-		       "start":function(){}, 
-		       "stop":function(){}}
-	//console.log("type: "+type);
-	//console.log("sub type: "+sub_type);
-	if (type == "oscillator"){
-	    subgraph = this.getOscillatorSubGraph(subgraph, 
-						 sub_type, 
-						 start_param1, 
-						 start_param2);
-	}
-	if (type == "filter"){
-	    subgraph = this.getFilterSubGraph(subgraph, 
-						 sub_type, 
-						 start_param1, 
-						 start_param2);
-	    
-	}
-	// define a function to stop the 
-	// sub graph - disconnect all nodes
-	// and then set nodes to an empty array, which should hopefully
-	// cause them to be cleared up.
-	subgraph.stop = function(){
-	    for (var i=0;i<subgraph.nodes.length;i++){
-		subgraph.nodes[i].disconnect();
-	    }
-	    subgraph.nodes = [];
-	};
-	return subgraph;
-    },
-   /** returns a web audio sub graph this module type and subtype,
-     * including appropriately connected gain nodes*/
-    getOscillatorSubGraph : function(subgraph, sub_type, start_param1, start_param2, module_id){
-	var osc, freq_input, output_gain;
-	// G -> F -> osc -> G * A ->
-	var osc =  this.audio_context.createOscillator();
-	osc.type = sub_type;
-	// set the starter frequency for the osc (comes from the genome)
-	osc.frequency.value = start_param1 * this.osc_freq_max;
-	freq_input = this.audio_context.createGain();
-	output_gain = this.audio_context.createGain();
-	// scalar for the frequency input. Modules patching into the gain node will have their
-	// output scaled by this 
-	freq_input.gain.value = start_param1 * this.osc_freq_max * 
-	    [0.25, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][Math.round(start_param2 * 10)];
-	//freq_input.gain.value = this.osc_freq_max; 
-	// patch the output of the frequency node into the frequecny control of the osc
-	freq_input.connect(osc.frequency);
-	// patch the oscillator output into the out gain node
-	osc.connect(output_gain);
-	subgraph.output = output_gain;
-	/** TODO: make sure that these input can be connected to.*/
-	subgraph.inputs = {"frequency":freq_input, "gain":output_gain};
-	subgraph.nodes = [osc, freq_input, output_gain];
-	subgraph.start = function(){
-	    osc.start(0);
-	};
-	return subgraph;
+      //var reverb = synthesizer.fx["reverb"];
+      // we connect the first module to the output as that is likely to be the most connected one
+      synthesizer.subgraphs[keys[0]].output.connect(compressor);
+      //reverb.connect(compressor);
+      compressor.connect(that.audio_context.destination);
+      // stash the final point of the synthesis chain
+      // so we can access it later.
+      that.record_point = compressor;
+    }
+    // this funciton is called when we want to stop the synth
+    // i.e.
+    synthesizer.stop = function() {
+      var keys = Object.keys(synthesizer.subgraphs);
+      for (var i = 0; i < keys.length; i++) {
+        if (synthesizer.subgraphs[keys[i]].output != false) { // got a graph
+          synthesizer.subgraphs[keys[i]].stop();
+          //synthesizer.subgraphs[keys[i]].output.connect(that.audio_context.destination);
+        }
+      }
+      // disconnect the first node, which should allow it to be GC'd
+      synthesizer.subgraphs[keys[0]].output.disconnect();
+      // disconnect the compressor
+      //synthesizer.fx["reverb"].disconnect();
+      synthesizer.fx["compressor"].disconnect();
+    }
+    return synthesizer;
+  },
 
-    }, 
-    getFilterSubGraph : function(subgraph, sub_type, start_param1, start_param2, module_id){
-	var filter, filter_input, freq_input, q_input, output_gain;
-	filter = this.audio_context.createBiquadFilter();
-	filter.type = sub_type;
-	// instantiate input gain nodes
-	filter_input = filter;
-	freq_input = this.audio_context.createGain();
-	q_input = this.audio_context.createGain();
-	output_gain = this.audio_context.createGain();
-	// set some starter values
-	filter.frequency.value = start_param1 * this.filt_freq_max;
-	filter.Q.value = start_param2 * 100; // Q goes to 100
-	// we will scale the frequency control into audio range
-	freq_input.gain.value = this.filt_freq_max;
-	freq_input.connect(filter.frequency);
-	// Q tops out at 100
-	q_input.gain.value = 100;
-	q_input.connect(filter.Q);
-	filter.connect(output_gain);
-	subgraph.inputs = {"filter_in":filter_input, 
-			   "frequency":freq_input, 
-			   "q":q_input, 
-			   "gain":output_gain};
-	subgraph.output = output_gain;
-	subgraph.nodes = [freq_input, q_input, filter, output_gain];
-	return subgraph;
-    }, 
+  /** wires the sent two modules together according to the wire spec*/
+  wireModulesTogether: function(subgraph_dict, wire_spec) {
+
+  },
+
+  /** returns a web audio sub graph this module type and subtype,
+   * including appropriately connected gain nodes*/
+  getModuleSubGraph: function(type, sub_type, start_param1, start_param2, module_id) {
+    //    getModuleSubGraph : function(type, sub_type, module_id){
+    var subgraph = {
+      "inputs": {},
+      "output": false,
+      "nodes": [],
+      "module_id": module_id,
+      "start": function() {},
+      "stop": function() {}
+    }
+    //console.log("type: "+type);
+    //console.log("sub type: "+sub_type);
+    if (type == "oscillator") {
+      subgraph = this.getOscillatorSubGraph(subgraph,
+        sub_type,
+        start_param1,
+        start_param2);
+    }
+    if (type == "filter") {
+      subgraph = this.getFilterSubGraph(subgraph,
+        sub_type,
+        start_param1,
+        start_param2);
+
+    }
+    // define a function to stop the
+    // sub graph - disconnect all nodes
+    // and then set nodes to an empty array, which should hopefully
+    // cause them to be cleared up.
+    subgraph.stop = function() {
+      for (var i = 0; i < subgraph.nodes.length; i++) {
+        subgraph.nodes[i].disconnect();
+      }
+      subgraph.nodes = [];
+    };
+    return subgraph;
+  },
+  /** returns a web audio sub graph this module type and subtype,
+   * including appropriately connected gain nodes*/
+  getOscillatorSubGraph: function(subgraph, sub_type, start_param1, start_param2, module_id) {
+    var osc, freq_input, output_gain;
+    // G -> F -> osc -> G * A ->
+    var osc = this.audio_context.createOscillator();
+    osc.type = sub_type;
+    // set the starter frequency for the osc (comes from the genome)
+    osc.frequency.value = start_param1 * this.osc_freq_max;
+    freq_input = this.audio_context.createGain();
+    output_gain = this.audio_context.createGain();
+    // scalar for the frequency input. Modules patching into the gain node will have their
+    // output scaled by this
+    freq_input.gain.value = start_param1 * this.osc_freq_max * [0.25, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][Math.round(start_param2 * 10)];
+    //freq_input.gain.value = this.osc_freq_max;
+    // patch the output of the frequency node into the frequecny control of the osc
+    freq_input.connect(osc.frequency);
+    // patch the oscillator output into the out gain node
+    osc.connect(output_gain);
+    subgraph.output = output_gain;
+    /** TODO: make sure that these input can be connected to.*/
+    subgraph.inputs = {
+      "frequency": freq_input,
+      "gain": output_gain
+    };
+    subgraph.nodes = [osc, freq_input, output_gain];
+    subgraph.start = function() {
+      osc.start(0);
+    };
+    return subgraph;
+
+  },
+  getFilterSubGraph: function(subgraph, sub_type, start_param1, start_param2, module_id) {
+    var filter, filter_input, freq_input, q_input, output_gain;
+    filter = this.audio_context.createBiquadFilter();
+    filter.type = sub_type;
+    // instantiate input gain nodes
+    filter_input = filter;
+    freq_input = this.audio_context.createGain();
+    q_input = this.audio_context.createGain();
+    output_gain = this.audio_context.createGain();
+    // set some starter values
+    filter.frequency.value = start_param1 * this.filt_freq_max;
+    filter.Q.value = start_param2 * 100; // Q goes to 100
+    // we will scale the frequency control into audio range
+    freq_input.gain.value = this.filt_freq_max;
+    freq_input.connect(filter.frequency);
+    // Q tops out at 100
+    q_input.gain.value = 100;
+    q_input.connect(filter.Q);
+    filter.connect(output_gain);
+    subgraph.inputs = {
+      "filter_in": filter_input,
+      "frequency": freq_input,
+      "q": q_input,
+      "gain": output_gain
+    };
+    subgraph.output = output_gain;
+    subgraph.nodes = [freq_input, q_input, filter, output_gain];
+    return subgraph;
+  },
 }
 
 },{}],4:[function(require,module,exports){
@@ -866,7 +909,7 @@ module.exports = {
    */
   newPopulation: function(popSize, synthSize) {
     popSize = (typeof popSize !== 'undefined') ? popSize : 5;
-    synthSize = (typeof synthSize !== 'undefined') ?synthSize : 50;  
+    synthSize = (typeof synthSize !== 'undefined') ?synthSize : 50;
 
     var pop = new Array();
     for (var i = 0; i < popSize; i++) {
@@ -882,8 +925,12 @@ module.exports = {
    */
   breedPopulation: function(oldPopulation, breedIds, mutation_rate, mutation_size) {
     var parents, crossover, next_gen;
-    if (breedIds.length == 0) {
-      console.log("Warning - no breed ids set. Returning old pop untouched");
+    mutation_rate = (typeof mutation_rate !== 'undefined') ?mutation_rate : 0.1;
+    mutation_size = (typeof mutation_size !== 'undefined') ?mutation_size : 0.1;
+    breedIds = (typeof breedIds !== 'undefined') ?breedIds : [0];
+
+    if (oldPopulation.length == 0) {
+      console.log("evolib breedPopulation Warning - nothing to evolve!. Returning old pop untouched");
       return oldPopulation;
     }
     crossover = false;
@@ -917,7 +964,7 @@ module.exports = {
       for (var i = 0; i < oldPopulation.length; i++) {
         var child = {};
         child.dna = parents[0].dna.slice(); // copy the array!!!!
-        child.type = "mutate";
+        child.type = ""; // we'll set this up later
         next_gen.push(child);
       }
     }
@@ -929,7 +976,7 @@ module.exports = {
       var pm_dna = this.genome_funcs.pointMutateGenome(dna, mutation_rate, mutation_size);
       // other mutations go here...
       //....
-
+      next_gen[i].type += " mutate "
       // put it back
       next_gen[i].dna = pm_dna;
     }

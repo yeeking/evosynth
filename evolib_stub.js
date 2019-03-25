@@ -17,8 +17,10 @@ var evolib_spec = {load:function(){
     try {
     var context = new (window.AudioContext || window.webkitAudioContext)();
     this.dsp_funcs.setContext(context);
+    console.log("evolib loaded!");
 	} catch(error){
-		console.log("Error initialisting audio context. Evollib will not work...");
+    alert("Evollb could not intialise audio context.")
+		//console.log("Error initialisting audio context. Evollib will not work...");
 	}
 
 
@@ -33,21 +35,29 @@ var evolib_spec = {load:function(){
 		currentPopulation = this.population_funcs.newPopulation(popSize, synthSize);
 	}
 	/** listen to a particular sound */
-	this.listen = function(ind){
+	this.play = function(ind){
 		// todo - check ind...
 		var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
 		var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
-		this.stopListening();
+		this.stop();
 		currentSynthesizer = new_synth;
 		currentSynthesizer.start();
 
 	}
 	/** stop playing the sound */
-	this.stopListening = function(){
+	this.stop = function(){
 		if (currentSynthesizer != undefined){// something was already playing
 			 currentSynthesizer.stop();
 		}
 	}
+/**
+ * Evolve the population from the selected breedIds, which refer to
+ * indexes of sounds you want in the current population, e.g. [0,1] for the
+ * first two.
+  */
+  this.evolve = function(breedIds, mutationRate, mutationSize){
+    currentPopulation = this.population_funcs.breedPopulation(currentPopulation, breedIds, mutationRate, mutationSize);
+  }
 
 	/** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
 	this.setListeningPosition = function(x, y){}
@@ -58,10 +68,7 @@ var evolib_spec = {load:function(){
 	this.select = function(ind){}
 	/** unselect an individual for breeding */
 	this.unselect = function(ind){}
-	/** breed from the currently selected individuals. the modes object specifies how the breeding should work
-	* {'point', 'grow', 'shrink', 'cross'}. If not specified, does a bit of everything
-	*/
-	this.breed = function(modes){}
+
 	/** returns a nodes and edges description of the circuit, suitable foe visualisation
 	* e.g. {nodes:[{id:10, type:'sin', x:0.1, y:0.6}, ... ],
 	*       edges:[{from:10, to:2, bias:0.4}, ...]}

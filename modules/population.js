@@ -8,7 +8,7 @@ module.exports = {
    */
   newPopulation: function(popSize, synthSize) {
     popSize = (typeof popSize !== 'undefined') ? popSize : 5;
-    synthSize = (typeof synthSize !== 'undefined') ?synthSize : 50;  
+    synthSize = (typeof synthSize !== 'undefined') ?synthSize : 50;
 
     var pop = new Array();
     for (var i = 0; i < popSize; i++) {
@@ -24,8 +24,12 @@ module.exports = {
    */
   breedPopulation: function(oldPopulation, breedIds, mutation_rate, mutation_size) {
     var parents, crossover, next_gen;
-    if (breedIds.length == 0) {
-      console.log("Warning - no breed ids set. Returning old pop untouched");
+    mutation_rate = (typeof mutation_rate !== 'undefined') ?mutation_rate : 0.1;
+    mutation_size = (typeof mutation_size !== 'undefined') ?mutation_size : 0.1;
+    breedIds = (typeof breedIds !== 'undefined') ?breedIds : [0];
+
+    if (oldPopulation.length == 0) {
+      console.log("evolib breedPopulation Warning - nothing to evolve!. Returning old pop untouched");
       return oldPopulation;
     }
     crossover = false;
@@ -59,7 +63,7 @@ module.exports = {
       for (var i = 0; i < oldPopulation.length; i++) {
         var child = {};
         child.dna = parents[0].dna.slice(); // copy the array!!!!
-        child.type = "mutate";
+        child.type = ""; // we'll set this up later
         next_gen.push(child);
       }
     }
@@ -71,7 +75,7 @@ module.exports = {
       var pm_dna = this.genome_funcs.pointMutateGenome(dna, mutation_rate, mutation_size);
       // other mutations go here...
       //....
-
+      next_gen[i].type += " mutate "
       // put it back
       next_gen[i].dna = pm_dna;
     }
