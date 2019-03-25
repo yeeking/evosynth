@@ -9,6 +9,9 @@ module.exports = {
   setContext: function(_context) {
     this.audio_context = _context;
   },
+  getContext: function(){
+    return this.audio_context;
+  },
   /** top level function that can convert a circuit specification
    * with wire and module properties into a full synthesizer that
    * can be started and stopped.*/
@@ -83,6 +86,14 @@ module.exports = {
       // disconnect the compressor
       //synthesizer.fx["reverb"].disconnect();
       synthesizer.fx["compressor"].disconnect();
+    }
+    /**
+    * returns a reference to the output node of the synth
+    * so it can be connected to other things, e.g. analysers
+    */
+    synthesizer.getOutputNode = function(){
+      var keys = Object.keys(synthesizer.subgraphs);
+      return synthesizer.subgraphs[keys[0]].output;
     }
     return synthesizer;
   },

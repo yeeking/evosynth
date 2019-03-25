@@ -1,5 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var evolib_spec = {load:function(){
+var evolib_spec = {
+  load: function() {
     console.log("evolib loading...");
 
     // private variables that maintain the state of the evolib
@@ -8,6 +9,8 @@ var evolib_spec = {load:function(){
     /** the current population */
     var currentPopulation = [];
     var currentSynthesizer = undefined;
+    var analyser = undefined;
+    var analyserThread = undefined;
 
     // modules supplying the actual functionality.
     this.population_funcs = require('./modules/population.js');
@@ -16,73 +19,109 @@ var evolib_spec = {load:function(){
     this.dsp_funcs = require("./modules/dsp.js");
 
     try {
-    var context = new (window.AudioContext || window.webkitAudioContext)();
-    this.dsp_funcs.setContext(context);
-    console.log("evolib loaded!");
-	} catch(error){
-    alert("Evollb could not intialise audio context.")
-		//console.log("Error initialisting audio context. Evollib will not work...");
-	}
+      var context = new(window.AudioContext || window.webkitAudioContext)();
+      this.dsp_funcs.setContext(context);
+      console.log("evolib loaded!");
+
+    } catch (error) {
+      alert("Evollb could not intialise audio context.")
+      //console.log("Error initialisting audio context. Evollib will not work...");
+    }
 
 
-	// define the top level functions that are directly exposed to users of the lib:
+    // define the top level functions that are directly exposed to users of the lib:
 
-	/** create new population of sounds.
-	* size is how many circuits to generate
-	* synthesis model is the type of synthesis. Available models: 'modular', 'fm', 'physical_tube'
-	*/
-	//this.newPopulation = function(size, synthesis_model){
-	this.newPopulation = function(popSize, synthSize){
-		currentPopulation = this.population_funcs.newPopulation(popSize, synthSize);
-	}
-	/** listen to a particular sound */
-	this.play = function(ind){
-		// todo - check ind...
-		var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
-		var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
-		this.stop();
-		currentSynthesizer = new_synth;
-		currentSynthesizer.start();
+    /** create new population of sounds.
+     * size is how many circuits to generate
+     * synthesis model is the type of synthesis. Available models: 'modular', 'fm', 'physical_tube'
+     */
+    //this.newPopulation = function(size, synthesis_model){
+    this.newPopulation = function(popSize, synthSize) {
+      currentPopulation = this.population_funcs.newPopulation(popSize, synthSize);
+    }
+    /** listen to a particular sound */
+    this.play = function(ind) {
+      // todo - check ind...
+      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
+      var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+      this.stop();
+      currentSynthesizer = new_synth;
+      // setup the analyser
+      currentSynthesizer.start();
+      if (analyser == undefined) {
+        analyser = this.dsp_funcs.getContext().createAnalyser();
+        analyser.fftSize = 256;
+      }
+      this.getSynthOutput().connect(analyser);
+    }
+    /**
+     * setup a callback for analysis data
+     */
+    this.analyse = function(callback) {
+      // stop the old callback caller
+      clearTimeout(analyserThread);
+      // make an analyser
+      if (currentSynthesizer != undefined) { // something was already playing
+        var bufferLength = analyser.frequencyBinCount;
+        var dataArray = new Uint8Array(bufferLength)
+        analyserThread = setInterval(function() {
+          analyser.getByteFrequencyData(dataArray);
+          callback(dataArray);
+        }, 1000);
+      }
+    }
 
-	}
-	/** stop playing the sound */
-	this.stop = function(){
-		if (currentSynthesizer != undefined){// something was already playing
-			 currentSynthesizer.stop();
-		}
-	}
-/**
- * Evolve the population from the selected breedIds, which refer to
- * indexes of sounds you want in the current population, e.g. [0,1] for the
- * first two.
-  */
-  this.evolve = function(breedIds, mutationRate, mutationSize){
-    currentPopulation = this.population_funcs.breedPopulation(currentPopulation, breedIds, mutationRate, mutationSize);
-  }
+    this.getAudioContext = function() {
+      return this.dsp_funcs.getContext();
+    }
 
-	/** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
-	this.setListeningPosition = function(x, y){}
-	/** play the first circuit then interpolate the parameters to the second circuit in time seconds*/
-	this.listenInterpolate = function(ind1, ind2, time){}
+    this.getSynthOutput = function() {
+      return currentSynthesizer.getOutputNode();
+    }
 
-	/** select an individual for breeding */
-	this.select = function(ind){}
-	/** unselect an individual for breeding */
-	this.unselect = function(ind){}
+    /** stop playing the sound */
+    this.stop = function() {
+      if (analyser != undefined){
+        analyser.disconnect();
+      }
+      if (currentSynthesizer != undefined) { // something was already playing
+        currentSynthesizer.stop();
+        currentSynthesizer = undefined;
+      }
+    }
+    /**
+     * Evolve the population from the selected breedIds, which refer to
+     * indexes of sounds you want in the current population, e.g. [0,1] for the
+     * first two.
+     */
+    this.evolve = function(breedIds, mutationRate, mutationSize) {
+      currentPopulation = this.population_funcs.breedPopulation(currentPopulation, breedIds, mutationRate, mutationSize);
+    }
 
-	/** returns a nodes and edges description of the circuit, suitable foe visualisation
-	* e.g. {nodes:[{id:10, type:'sin', x:0.1, y:0.6}, ... ],
-	*       edges:[{from:10, to:2, bias:0.4}, ...]}
-	*/
-	this.getSynthGraph = function(){}
+    /** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
+    this.setListeningPosition = function(x, y) {}
+    /** play the first circuit then interpolate the parameters to the second circuit in time seconds*/
+    this.listenInterpolate = function(ind1, ind2, time) {}
 
-	/** attempt to match the sent sound which is an audio file
-	*/
-	this.matchSound = function(audio_file){}
+    /** select an individual for breeding */
+    this.select = function(ind) {}
+    /** unselect an individual for breeding */
+    this.unselect = function(ind) {}
+
+    /** returns a nodes and edges description of the circuit, suitable foe visualisation
+     * e.g. {nodes:[{id:10, type:'sin', x:0.1, y:0.6}, ... ],
+     *       edges:[{from:10, to:2, bias:0.4}, ...]}
+     */
+    this.getSynthGraph = function() {}
+
+    /** attempt to match the sent sound which is an audio file
+     */
+    this.matchSound = function(audio_file) {}
 
 
     return this;
-}}
+  }
+}
 
 
 //console.log("Here goes nothing");
@@ -338,6 +377,9 @@ module.exports = {
   setContext: function(_context) {
     this.audio_context = _context;
   },
+  getContext: function(){
+    return this.audio_context;
+  },
   /** top level function that can convert a circuit specification
    * with wire and module properties into a full synthesizer that
    * can be started and stopped.*/
@@ -412,6 +454,14 @@ module.exports = {
       // disconnect the compressor
       //synthesizer.fx["reverb"].disconnect();
       synthesizer.fx["compressor"].disconnect();
+    }
+    /**
+    * returns a reference to the output node of the synth
+    * so it can be connected to other things, e.g. analysers
+    */
+    synthesizer.getOutputNode = function(){
+      var keys = Object.keys(synthesizer.subgraphs);
+      return synthesizer.subgraphs[keys[0]].output;
     }
     return synthesizer;
   },
