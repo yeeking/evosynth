@@ -56,7 +56,7 @@ var evolib_spec = {
     /**
      * setup a callback for analysis data
      */
-    this.analyse = function(callback) {
+    this.analyse = function(callback, interval) {
       // stop the old callback caller
       clearTimeout(analyserThread);
       // make an analyser
@@ -66,7 +66,7 @@ var evolib_spec = {
         analyserThread = setInterval(function() {
           analyser.getByteFrequencyData(dataArray);
           callback(dataArray);
-        }, 1000);
+        }, interval);
       }
     }
 
