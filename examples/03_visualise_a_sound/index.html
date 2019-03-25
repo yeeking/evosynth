@@ -9,9 +9,6 @@
   <button onclick="Evolib.stop()">stop</button>
   <button onclick="Evolib.evolve([0], 0.1); Evolib.play(0)">mutate</button>
   <button onclick="Evolib.newPopulation()">new sound</button>
-  <br>
-  <button style="background:green" 
-  onclick="Evolib.analyse(analyserCallback, 100)">analyse</button>
 
 <!-- A little graphic equaliser-->
 
@@ -21,8 +18,8 @@
 
 
 <script language="javascript" type="text/javascript">
-  Evolib.newPopulation();
-  var context = Evolib.getAudioContext();
+  Evolib.newPopulation(1, 20);
+  Evolib.analyse(analyserCallback, 100);
   function analyserCallback(data){
    var bar1 = document.getElementById('bar1');
    var bar2 = document.getElementById('bar2');
@@ -30,11 +27,9 @@
    bar1.style.width = (data[12] / 255.0 * 25) + "%";
    bar2.style.width = (data[64] / 255.0 * 25) + "%";
    bar3.style.width = (data[96] / 255.0 * 25) + "%";
-      
+   
+   
   }
-
-  
-  
 
 </script>
 </body>

@@ -20,6 +20,8 @@ var evolib_spec = {
     try {
       var context = new(window.AudioContext || window.webkitAudioContext)();
       this.dsp_funcs.setContext(context);
+      analyser = this.dsp_funcs.getContext().createAnalyser();
+      analyser.fftSize = 256;
       console.log("evolib loaded!");
 
     } catch (error) {
@@ -47,10 +49,6 @@ var evolib_spec = {
       currentSynthesizer = new_synth;
       // setup the analyser
       currentSynthesizer.start();
-      if (analyser == undefined) {
-        analyser = this.dsp_funcs.getContext().createAnalyser();
-        analyser.fftSize = 256;
-      }
       this.getSynthOutput().connect(analyser);
     }
     /**
@@ -60,14 +58,14 @@ var evolib_spec = {
       // stop the old callback caller
       clearTimeout(analyserThread);
       // make an analyser
-      if (currentSynthesizer != undefined) { // something was already playing
+    //  if (currentSynthesizer != undefined) { // something was already playing
         var bufferLength = analyser.frequencyBinCount;
         var dataArray = new Uint8Array(bufferLength)
         analyserThread = setInterval(function() {
           analyser.getByteFrequencyData(dataArray);
           callback(dataArray);
         }, interval);
-      }
+    //  }
     }
 
     this.getAudioContext = function() {
