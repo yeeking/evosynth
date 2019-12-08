@@ -52,6 +52,9 @@ var evolib_spec = {
       currentSynthesizer.start();
       this.getSynthOutput().connect(analyser);
     }
+    this.setGain = function(gain){
+      currentSynthesizer.setGain(gain);
+    }
     /**
      * setup a callback for analysis data
      */
@@ -382,9 +385,12 @@ module.exports = {
    * with wire and module properties into a full synthesizer that
    * can be started and stopped.*/
   moduleAndWireSpecToSynthesizer: function(full_spec) {
+    /** Here is the dict for th synth. The functions get filled in below */
     var synthesizer = {
       "start": function() {},
       "stop": function() {},
+      "getOutputNode": function(){}, 
+      "setGain": function(){}, 
       "subgraphs": {},
       "fx": {}
     };
@@ -401,8 +407,10 @@ module.exports = {
     // now create the compressor for the synth output
     var compressor = this.audio_context.createDynamicsCompressor();
     synthesizer.fx["compressor"] = compressor;
-    var reverb = this.audio_context.createConvolver();
-    synthesizer.fx["reverb"] = reverb;
+    var gainNode = this.audio_context.createGain();
+    synthesizer.fx["gain"] = gainNode;
+    //var reverb = this.audio_context.createConvolver();
+    //synthesizer.fx["reverb"] = reverb;
     // interpret the wiring into connections between the webaudio nodes
     // generate the actual web audio api nodes and store them to the sub graphs array
     for (var i = 0; i < full_spec.wires.length; i++) {
@@ -426,15 +434,24 @@ module.exports = {
         }
       }
       // now create a reverb and a compressor
-      var compressor = synthesizer.fx["compressor"];
-
+      
       //var reverb = synthesizer.fx["reverb"];
       // we connect the first module to the output as that is likely to be the most connected one
-      synthesizer.subgraphs[keys[0]].output.connect(compressor);
+      
       //reverb.connect(compressor);
-      compressor.connect(that.audio_context.destination);
+      var gainNode = synthesizer.fx["gain"];
+      var compressor = synthesizer.fx["compressor"];
+
+      synthesizer.subgraphs[keys[0]].output.connect(compressor);  
+      compressor.connect(gainNode);
+      
+      gainNode.connect(that.audio_context.destination);
+      
+      gainNode.gain.value = 0.125;
+
       // stash the final point of the synthesis chain
       // so we can access it later.
+      
       that.record_point = compressor;
     }
     // this funciton is called when we want to stop the synth
@@ -452,6 +469,8 @@ module.exports = {
       // disconnect the compressor
       //synthesizer.fx["reverb"].disconnect();
       synthesizer.fx["compressor"].disconnect();
+      synthesizer.fx["gain"].disconnect();
+      
     }
     /**
     * returns a reference to the output node of the synth
@@ -460,6 +479,18 @@ module.exports = {
     synthesizer.getOutputNode = function(){
       var keys = Object.keys(synthesizer.subgraphs);
       return synthesizer.subgraphs[keys[0]].output;
+    }
+    /** 
+     * Call this to set the main output volume of the 
+     * synth between 0 and 1
+     */
+    synthesizer.setGain = function(gain){
+      if (gain > 1 || gain < 0){
+        console.log("dsp::synthesizer::setGain: value must be between 0 and 1");
+        return;
+      }
+      console.log("synthesizer.setGain setting gain to "+gain);
+      synthesizer.fx["gain"].gain.value = gain; 
     }
     return synthesizer;
   },

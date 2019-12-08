@@ -51,6 +51,9 @@ var evolib_spec = {
       currentSynthesizer.start();
       this.getSynthOutput().connect(analyser);
     }
+    this.setGain = function(gain){
+      currentSynthesizer.setGain(gain);
+    }
     /**
      * setup a callback for analysis data
      */
