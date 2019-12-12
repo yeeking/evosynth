@@ -367,6 +367,64 @@ describe("genome", function() {
       expect(tree[1].breeders[0].parent_ids.length).to.equal(0); //
     })
   })
-  //describe ("findParents", function(){})
-
+  describe("interpolateBetweenValues", function(){
+    it("should generate correct number of steps", function(){
+      var res = genome.interpolateBetweenValues(0,1, 3);
+      expect(res.length).to.eq(3);
+    })
+    it("should generate 0.5", function(){
+      var res = genome.interpolateBetweenValues(0, 1, 1);
+      expect(res[0]).to.eq(0.5);
+    })
+  })
+  describe("interpolateBetweenGenomes", function(){
+    it("should generate correct number of steps", function(){
+      var g1 = [0, 0, 0];
+      var g2 = [0, 0, 0];
+      var res = genome.interpolateBetweenGenomes(g1, g2, 3);
+      expect(res.length).to.eq(3);
+    })
+    it("should match g2 length", function(){
+      var g1 = [0, 0, 0];
+      var g2 = [0, 0, 0, 0];
+      var res = genome.interpolateBetweenGenomes(g1, g2, 3);
+      expect(res[0].length).to.eq(g2.length);
+      expect(res[2].length).to.eq(g2.length);   
+    })
+    it("should interpolate same length", function(){
+      var g1 = [0, 0, 0];
+      var g2 = [1, 2, 4];
+      var steps = 3;
+      var res = genome.interpolateBetweenGenomes(g1, g2, steps);
+      expect(res[0][0]).to.eq(1/(steps+1));
+      expect(res[0][1]).to.eq(2/(steps+1));
+      expect(res[0][2]).to.eq(4/(steps+1));
+    })
+    it("should interpolate g2 longer", function(){
+      var g1 = [0, 0, 0];
+      var g2 = [1, 2, 4, 1, 1];
+      var steps = 3;
+      var res = genome.interpolateBetweenGenomes(g1, g2, steps);
+      expect(res[0][3]).to.eq(1/(steps+1));
+      expect(res[0][4]).to.eq(1/(steps+1));
+    })
+    it("should set length to target with longer source", function(){
+      var g1 = [1, 2, 4, 1, 1];
+      var g2 = [0, 0, 0];
+      // should fade down the 1s and eventually delete them
+      var steps = 3;
+      var res = genome.interpolateBetweenGenomes(g1, g2, steps);
+      expect(res[2].length).to.eq(3);
+    })
+    it("should handle many steps", function(){
+      var g1 = [0, 0, 0];
+      var g2 = [1, 2, 4];
+      var steps = 1000;
+      var res = genome.interpolateBetweenGenomes(g1, g2, steps);
+      expect(res[0][0]).to.eq(1/(steps+1));
+      expect(res[0][1]).to.eq(2/(steps+1));
+      expect(res[0][2]).to.eq(4/(steps+1));
+    })
+  })
+ 
 })

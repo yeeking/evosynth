@@ -370,4 +370,59 @@ module.exports = {
     sum = Math.sqrt(sum);
     return sum;
   },
+  /**
+   * Interpolate between the two genomes, returning the in-between genomes
+   * @param {array of ints} genome1 
+   * @param {array of ints} genome2 
+   * @param {int} steps 
+   * @return an array of arrays representing the interpolation steps beteeen the genomes
+   */
+  interpolateBetweenGenomes: function (g1, g2, steps){
+    var removeZeroes;
+    var len_diff = Math.abs(g1.length - g2.length);
+    if (g1.length > g2.length){
+      removeZeroes = true;// fade then remove unwanted zeroes at the end
+      for (var i=0;i<len_diff;i++)  g2.push(0);
+    }
+    if (g2.length > g1.length){
+      removeZeroes = false; // add zeroes then fade
+      //zeropad it
+      for (var i=0;i<len_diff;i++)  g1.push(0); // pad g1
+    }
+    // now interpolate each element
+    var inters = [];
+    for (var i=0;i<steps;i++) inters.push([]);
+    for (var i=0;i<g1.length;i++)
+    {
+      var sub_inters = this.interpolateBetweenValues(g1[i], g2[i], steps);
+      for (var j=0;j<steps;j++)
+      {
+        inters[j].push(sub_inters[j]);
+      }
+    }
+    if (removeZeroes){
+      // trim off the zeros
+      for (var i=0;i<len_diff;i++)  inters[steps-1].pop(); 
+    }
+    return inters;
+  }, 
+
+  /**
+   * Interpolates between v1 and v2 in steps and returns 
+   * an array of the values in between the two values
+   * @param {float} v1 - start value
+   * @param {float} v2 - end value
+   * @param {int} steps - number of steps
+   */
+  interpolateBetweenValues(v1, v2, steps){
+    var vals = [];
+    var d = (v2 - v1)/(steps+1);
+    var x = v1;
+    for (var i=0;i<steps;i++)
+    {
+      x += d;
+      vals.push(x);
+    }
+    return vals;
+  }
 }
