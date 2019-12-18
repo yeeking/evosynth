@@ -78,7 +78,7 @@ module.exports = {
       
       gainNode.connect(that.audio_context.destination);
       
-      gainNode.gain.value = 0.125;
+      gainNode.gain.value = 0.75;
 
       // stash the final point of the synthesis chain
       // so we can access it later.
@@ -120,7 +120,6 @@ module.exports = {
         console.log("dsp::synthesizer::setGain: value must be between 0 and 1");
         return;
       }
-      console.log("synthesizer.setGain setting gain to "+gain);
       synthesizer.fx["gain"].gain.value = gain; 
     }
     return synthesizer;

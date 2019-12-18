@@ -43,17 +43,39 @@ var evolib_spec = {
     }
     /** listen to a particular sound */
     this.play = function(ind) {
+      var genome = currentPopulation[ind];
+      this.playGenome(genome);
+    }
+    this.playGenome = function(genome){
+      if (this.busy) 
+      {
+        console.log('playGenome::busy - try again later. ');
+        return;
+      }
+      if (genome == undefined){
+        console.log('playGenome::bad genome!');
+        return;
+      }
+      this.busy = true;
       // todo - check ind...
-      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
-      var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+      // check if the genoma 
+      if (genome.dna == undefined){
+        genome = {'dna':genome};
+      }
+      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
       this.stop();
+      
+      var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
       currentSynthesizer = new_synth;
       // setup the analyser
       currentSynthesizer.start();
-      this.getSynthOutput().connect(analyser);
+      this.busy = false;
+     // this.getSynthOutput().connect(analyser);
     }
     this.setGain = function(gain){
-      currentSynthesizer.setGain(gain);
+      if (currentSynthesizer != undefined){
+        currentSynthesizer.setGain(gain);
+      }
     }
     /**
      * setup a callback for analysis data
@@ -101,6 +123,15 @@ var evolib_spec = {
 
     /** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
     this.setListeningPosition = function(x, y) {}
+    /** return a gewnom at position between g1 and g2 based on linear interpolation. 
+     * if position is 0.5, it'll be half way between. 
+    */
+    this.getInBetweenGenome = function(ind1, ind2, position) {
+      return this.genome_funcs.getInBetweenGenome(currentPopulation[ind1].dna, 
+                                                  currentPopulation[ind2].dna, 
+                                                  position);
+    }
+
     /** play the first circuit then interpolate the parameters to the second circuit in time seconds*/
     this.listenInterpolate = function(ind1, ind2, time) {}
 
@@ -447,7 +478,7 @@ module.exports = {
       
       gainNode.connect(that.audio_context.destination);
       
-      gainNode.gain.value = 0.125;
+      gainNode.gain.value = 0.75;
 
       // stash the final point of the synthesis chain
       // so we can access it later.
@@ -489,7 +520,6 @@ module.exports = {
         console.log("dsp::synthesizer::setGain: value must be between 0 and 1");
         return;
       }
-      console.log("synthesizer.setGain setting gain to "+gain);
       synthesizer.fx["gain"].gain.value = gain; 
     }
     return synthesizer;
@@ -975,6 +1005,79 @@ module.exports = {
     sum = Math.sqrt(sum);
     return sum;
   },
+  /**
+   * getInBetweenGenome: interpolates beteeen the two genomes and returns the 
+   * genome placed at position, if position = 0.5, half way between and so on
+   * @param {array of floats} genome1 
+   * @param {array of floats} genome2 
+   * @param {float 0-1} position 
+   * @return a new genome
+   */
+  getInBetweenGenome: function(g1, g2, position){
+    if (position < 0 || position > 1){
+      console.log('genome:getInBetweenGenome:WARNING position must be 0-1 '+position);
+      return g1;
+    }
+    // calculate a 100 point interpolation:
+    gs = this.interpolateBetweenGenomes(g1, g2, 100);
+    ind = Math.round(position * 100);
+    return gs[ind];
+  },
+  /**
+   * Interpolate between the two genomes, returning the in-between genomes
+   * @param {array of floats} genome1 
+   * @param {array of floats} genome2 
+   * @param {int} steps 
+   * @return an array of arrays representing the interpolation steps beteeen the genomes
+   */
+  interpolateBetweenGenomes: function (g1, g2, steps){
+    var removeZeroes;
+    var len_diff = Math.abs(g1.length - g2.length);
+    if (g1.length > g2.length){
+      removeZeroes = true;// fade then remove unwanted zeroes at the end
+      for (var i=0;i<len_diff;i++)  g2.push(0);
+    }
+    if (g2.length > g1.length){
+      removeZeroes = false; // add zeroes then fade
+      //zeropad it
+      for (var i=0;i<len_diff;i++)  g1.push(0); // pad g1
+    }
+    // now interpolate each element
+    var inters = [];
+    for (var i=0;i<steps;i++) inters.push([]);
+    for (var i=0;i<g1.length;i++)
+    {
+      var sub_inters = this.interpolateBetweenValues(g1[i], g2[i], steps);
+      for (var j=0;j<steps;j++)
+      {
+        inters[j].push(sub_inters[j]);
+      }
+    }
+    if (removeZeroes){
+      // trim off the zeros
+      for (var i=0;i<len_diff;i++)  inters[steps-1].pop(); 
+    }
+    return inters;
+  }, 
+
+  /**
+   * Interpolates between v1 and v2 in steps and returns 
+   * an array of the values in between the two values
+   * @param {float} v1 - start value
+   * @param {float} v2 - end value
+   * @param {int} steps - number of steps
+   */
+  interpolateBetweenValues(v1, v2, steps){
+    var vals = [];
+    var d = (v2 - v1)/(steps+1);
+    var x = v1;
+    for (var i=0;i<steps;i++)
+    {
+      x += d;
+      vals.push(x);
+    }
+    return vals;
+  }
 }
 
 },{}],5:[function(require,module,exports){

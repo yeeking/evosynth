@@ -42,17 +42,39 @@ var evolib_spec = {
     }
     /** listen to a particular sound */
     this.play = function(ind) {
+      var genome = currentPopulation[ind];
+      this.playGenome(genome);
+    }
+    this.playGenome = function(genome){
+      if (this.busy) 
+      {
+        console.log('playGenome::busy - try again later. ');
+        return;
+      }
+      if (genome == undefined){
+        console.log('playGenome::bad genome!');
+        return;
+      }
+      this.busy = true;
       // todo - check ind...
-      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(currentPopulation[ind]);
-      var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+      // check if the genoma 
+      if (genome.dna == undefined){
+        genome = {'dna':genome};
+      }
+      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
       this.stop();
+      
+      var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
       currentSynthesizer = new_synth;
       // setup the analyser
       currentSynthesizer.start();
-      this.getSynthOutput().connect(analyser);
+      this.busy = false;
+     // this.getSynthOutput().connect(analyser);
     }
     this.setGain = function(gain){
-      currentSynthesizer.setGain(gain);
+      if (currentSynthesizer != undefined){
+        currentSynthesizer.setGain(gain);
+      }
     }
     /**
      * setup a callback for analysis data
@@ -100,6 +122,15 @@ var evolib_spec = {
 
     /** listen at a particular x, y position in the circuit, where x, y are in the range 0-1*/
     this.setListeningPosition = function(x, y) {}
+    /** return a gewnom at position between g1 and g2 based on linear interpolation. 
+     * if position is 0.5, it'll be half way between. 
+    */
+    this.getInBetweenGenome = function(ind1, ind2, position) {
+      return this.genome_funcs.getInBetweenGenome(currentPopulation[ind1].dna, 
+                                                  currentPopulation[ind2].dna, 
+                                                  position);
+    }
+
     /** play the first circuit then interpolate the parameters to the second circuit in time seconds*/
     this.listenInterpolate = function(ind1, ind2, time) {}
 

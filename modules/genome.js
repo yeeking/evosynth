@@ -371,9 +371,27 @@ module.exports = {
     return sum;
   },
   /**
+   * getInBetweenGenome: interpolates beteeen the two genomes and returns the 
+   * genome placed at position, if position = 0.5, half way between and so on
+   * @param {array of floats} genome1 
+   * @param {array of floats} genome2 
+   * @param {float 0-1} position 
+   * @return a new genome
+   */
+  getInBetweenGenome: function(g1, g2, position){
+    if (position < 0 || position > 1){
+      console.log('genome:getInBetweenGenome:WARNING position must be 0-1 '+position);
+      return g1;
+    }
+    // calculate a 100 point interpolation:
+    gs = this.interpolateBetweenGenomes(g1, g2, 100);
+    ind = Math.round(position * 100);
+    return gs[ind];
+  },
+  /**
    * Interpolate between the two genomes, returning the in-between genomes
-   * @param {array of ints} genome1 
-   * @param {array of ints} genome2 
+   * @param {array of floats} genome1 
+   * @param {array of floats} genome2 
    * @param {int} steps 
    * @return an array of arrays representing the interpolation steps beteeen the genomes
    */

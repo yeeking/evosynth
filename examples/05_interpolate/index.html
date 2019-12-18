@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../../evolib.js"></script>
+</head>
+<noscript>Please enable Javascript if you want to hear the evosynth as it uses the web audio API which is only accessible via Javascript. </noscript>
+<body>
+
+  <br/>
+<label>Gain:</label>
+  <input  onmousemove="Evolib.setGain(this.value / 100.0)" type="range" min="0" max="100" value="100">
+
+  <button onclick="Evolib.stop()">stop</button>
+  <button onclick="Evolib.newPopulation(2, 100); Evolib.play(1);">new sounds</button>
+
+<br>
+  <button onclick="Evolib.play(0)">play 1</button>
+  <label>Interpolate:</label>
+  <input onchange="playInbetween(0, 1, this.value / 100.0)" type="range" min="0" max="100" value="100">
+  <button onclick="Evolib.play(1)">play 2</button>
+
+<script language="javascript" type="text/javascript">
+  
+  Evolib.newPopulation(2, 100);
+
+  function playInbetween(ind1, ind2, pos){
+    var genome = Evolib.getInBetweenGenome(ind1, ind2, pos);
+    Evolib.playGenome(genome);
+  }
+  
+</script>
+</body>
+</html>
