@@ -383,6 +383,8 @@ module.exports = {
       console.log('genome:getInBetweenGenome:WARNING position must be 0-1 '+position);
       return g1;
     }
+    if (position == 0) return g1;
+    if (position == 1) return g2;
     // calculate a 100 point interpolation:
     gs = this.interpolateBetweenGenomes(g1, g2, 100);
     ind = Math.round(position * 100);

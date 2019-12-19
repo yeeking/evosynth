@@ -8,8 +8,10 @@ var evolib_spec = {
     /** the current population */
     var currentPopulation = [];
     var currentSynthesizer = undefined;
+    var oldSynthesizer = undefined;
     var analyser = undefined;
     var analyserThread = undefined;
+    var in_transition = false;
 
     // modules supplying the actual functionality.
     this.population_funcs = require('./modules/population.js');
@@ -45,35 +47,37 @@ var evolib_spec = {
       var genome = currentPopulation[ind];
       this.playGenome(genome);
     }
-    this.playGenome = function(genome){
-      if (this.busy) 
-      {
-        console.log('playGenome::busy - try again later. ');
-        return;
-      }
+    this.playGenome = function(genome, rampTime){
       if (genome == undefined){
         console.log('playGenome::bad genome!');
         return;
       }
-      this.busy = true;
-      // todo - check ind...
-      // check if the genoma 
       if (genome.dna == undefined){
         genome = {'dna':genome};
       }
-      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
       this.stop();
-      
+      var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
       var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
       currentSynthesizer = new_synth;
-      // setup the analyser
       currentSynthesizer.start();
-      this.busy = false;
-     // this.getSynthOutput().connect(analyser);
-    }
-    this.setGain = function(gain){
+
+   }// end playGenome
+
+      /** stop playing the sound */
+    this.stop = function() {
+      console.log('stop!');
+      if (analyser != undefined){
+        analyser.disconnect();
+      }
       if (currentSynthesizer != undefined){
-        currentSynthesizer.setGain(gain);
+        currentSynthesizer.stop();
+        currentSynthesizer = undefined;
+      }
+    }
+
+    this.setGain = function(gain, rampTime){
+      if (currentSynthesizer != undefined){
+        currentSynthesizer.setGain(gain, rampTime);
       }
     }
     /**
@@ -101,16 +105,7 @@ var evolib_spec = {
       return currentSynthesizer.getOutputNode();
     }
 
-    /** stop playing the sound */
-    this.stop = function() {
-      if (analyser != undefined){
-        analyser.disconnect();
-      }
-      if (currentSynthesizer != undefined) { // something was already playing
-        currentSynthesizer.stop();
-        currentSynthesizer = undefined;
-      }
-    }
+
     /**
      * Evolve the population from the selected breedIds, which refer to
      * indexes of sounds you want in the current population, e.g. [0,1] for the

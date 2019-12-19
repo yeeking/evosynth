@@ -11,7 +11,7 @@
   <input  onmousemove="Evolib.setGain(this.value / 100.0)" type="range" min="0" max="100" value="100">
 
   <button onclick="Evolib.stop()">stop</button>
-  <button onclick="Evolib.newPopulation(2, 100); Evolib.play(1);">new sounds</button>
+  <button onclick="Evolib.newPopulation(2, 40); Evolib.play(1);">new sounds</button>
 
 <br>
   <button onclick="Evolib.play(0)">play 1</button>
@@ -21,11 +21,11 @@
 
 <script language="javascript" type="text/javascript">
   
-  Evolib.newPopulation(2, 100);
+  Evolib.newPopulation(2, 40);
 
   function playInbetween(ind1, ind2, pos){
     var genome = Evolib.getInBetweenGenome(ind1, ind2, pos);
-    Evolib.playGenome(genome);
+    Evolib.playGenome(genome, 10);
   }
   
 </script>

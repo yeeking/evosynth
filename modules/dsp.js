@@ -91,7 +91,9 @@ module.exports = {
       var keys = Object.keys(synthesizer.subgraphs);
       for (var i = 0; i < keys.length; i++) {
         if (synthesizer.subgraphs[keys[i]].output != false) { // got a graph
+          synthesizer.subgraphs[keys[i]].output.disconnect();
           synthesizer.subgraphs[keys[i]].stop();
+          
           //synthesizer.subgraphs[keys[i]].output.connect(that.audio_context.destination);
         }
       }
@@ -101,6 +103,7 @@ module.exports = {
       //synthesizer.fx["reverb"].disconnect();
       synthesizer.fx["compressor"].disconnect();
       synthesizer.fx["gain"].disconnect();
+      //that.audio_context.close();
       
     }
     /**
@@ -115,12 +118,18 @@ module.exports = {
      * Call this to set the main output volume of the 
      * synth between 0 and 1
      */
-    synthesizer.setGain = function(gain){
+    synthesizer.setGain = function(gain, rampTime){
       if (gain > 1 || gain < 0){
         console.log("dsp::synthesizer::setGain: value must be between 0 and 1");
         return;
       }
-      synthesizer.fx["gain"].gain.value = gain; 
+      if (rampTime != undefined && rampTime > 0){
+        console.log('Ramping to '+gain+' in '+rampTime);
+        synthesizer.fx["gain"].gain.linearRampToValueAtTime(gain, that.getContext().currentTime + rampTime);
+      }
+      else {
+        synthesizer.fx["gain"].gain.value = gain; 
+      }
     }
     return synthesizer;
   },
