@@ -56,7 +56,7 @@ module.exports = {
 
     // build the start function that is used to start the synth playing
     var that = this;
-    synthesizer.start = function() {
+    synthesizer.start = function(gain) {
       var keys = Object.keys(synthesizer.subgraphs);
       for (var i = 0; i < keys.length; i++) {
         if (synthesizer.subgraphs[keys[i]].output != false) { // got a graph
@@ -77,9 +77,13 @@ module.exports = {
       compressor.connect(gainNode);
       
       gainNode.connect(that.audio_context.destination);
+      if (gain != undefined){
+        gainNode.gain.value = gain;
+      }
+      else {
+        gainNode.gain.value = 1.0;
+      }
       
-      gainNode.gain.value = 0.75;
-
       // stash the final point of the synthesis chain
       // so we can access it later.
       

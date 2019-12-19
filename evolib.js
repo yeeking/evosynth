@@ -9,11 +9,10 @@ var evolib_spec = {
     /** the current population */
     var currentPopulation = [];
     var currentSynthesizer = undefined;
-    var oldSynthesizer = undefined;
+    var synthArray = [];
     var analyser = undefined;
     var analyserThread = undefined;
-    var in_transition = false;
-
+   
     // modules supplying the actual functionality.
     this.population_funcs = require('./modules/population.js');
     this.genome_funcs = require('./modules/genome.js');
@@ -48,7 +47,7 @@ var evolib_spec = {
       var genome = currentPopulation[ind];
       this.playGenome(genome);
     }
-    this.playGenome = function(genome, rampTime){
+    this.playGenome = function(genome){
       if (genome == undefined){
         console.log('playGenome::bad genome!');
         return;
@@ -60,11 +59,41 @@ var evolib_spec = {
       var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
       var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
       currentSynthesizer = new_synth;
+      currentSynthesizer.setGain(1);
       currentSynthesizer.start();
 
    }// end playGenome
+   /**
+    * Uses the synth array to manage multiple synths. Allows smoother fading
+    * between synths
+    */
+   this.playGenomePoly = function(genome, rampTime)
+   {
+    if (genome.dna == undefined){
+      genome = {'dna':genome};
+    }
+    var spec = Evolib.circuit_funcs.genomeToModuleAndWireSpecs(genome);
+    var new_synth = Evolib.dsp_funcs.moduleAndWireSpecToSynthesizer(spec);
+    new_synth.start(0);
+    new_synth.setGain(1.0, 2.0);
+    
+    if (synthArray.length < 5){// just stick the synth on the end
+      synthArray.push(new_synth);
+    }
+    else{
+      // kill off the first synth and push it on the end
+      synthArray[0].stop();
+      synthArray = synthArray.slice(1);
+      synthArray.push(new_synth);
+    }
+    // now fade old synths
+    for (var i=0;i<synthArray.length -1; i++){
+      synthArray[i].setGain(0, 5.0);
+    }
+  
+   }
 
-      /** stop playing the sound */
+    /** stop playing the sound */
     this.stop = function() {
       console.log('stop!');
       if (analyser != undefined){
@@ -451,7 +480,7 @@ module.exports = {
 
     // build the start function that is used to start the synth playing
     var that = this;
-    synthesizer.start = function() {
+    synthesizer.start = function(gain) {
       var keys = Object.keys(synthesizer.subgraphs);
       for (var i = 0; i < keys.length; i++) {
         if (synthesizer.subgraphs[keys[i]].output != false) { // got a graph
@@ -472,9 +501,13 @@ module.exports = {
       compressor.connect(gainNode);
       
       gainNode.connect(that.audio_context.destination);
+      if (gain != undefined){
+        gainNode.gain.value = gain;
+      }
+      else {
+        gainNode.gain.value = 1.0;
+      }
       
-      gainNode.gain.value = 0.75;
-
       // stash the final point of the synthesis chain
       // so we can access it later.
       
