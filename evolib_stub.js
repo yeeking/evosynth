@@ -133,8 +133,18 @@ var evolib_spec = {
     this.getSynthOutput = function() {
       return currentSynthesizer.getOutputNode();
     }
-
-
+    /**
+     * Set the scalar on the osc freq paramater
+     */
+    this.setOscMax = function(osc_max){
+      this.dsp_funcs.setOscMax(osc_max);
+    }
+    /**
+     * Set the scalar on the filter freq parameter
+     */
+    this.setFilterMax = function(filt_max){
+      this.dsp_funcs.setFilterMax(filt_max);
+    }
     /**
      * Evolve the population from the selected breedIds, which refer to
      * indexes of sounds you want in the current population, e.g. [0,1] for the

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../../evolib.js"></script>
+</head>
+<noscript>Please enable Javascript if you want to hear the evosynth as it uses the web audio API which is only accessible via Javascript. </noscript>
+<body>
+
+  <br/>
+  <button onclick="Evolib.newPopulation(2, 40); playInbetween(0, 1, 0);">new sounds</button>
+
+<br>
+  <button onclick="playInbetween(0, 1, 0)">play 1</button>
+  <label>Interpolate:</label>
+  <input onchange="playInbetween(0, 1, this.value / 100.0)" type="range" min="0" max="100" value="100">
+  <button onclick="playInbetween(0, 1, 1)">play 2</button>
+
+  <br>
+  <label>Module count: <span id="mod_count"></span></label>
+  <input onchange="Evolib.newPopulation(2, this.value); playInbetween(0, 1, 0); document.getElementById('mod_count').innerHTML = this.value" type="range" min="5" max="100" value="100">
+
+  <!-- <br>
+  <label>Osc scalar: <span id="osc_scalar"></span></label>
+  <input onchange="Evolib.newPopulation(2, this.value); playInbetween(0, 1, 0); Evolib.setOscMax(this.value); document.getElementById('osc_scalar').innerHTML = this.value" type="range" min="5" max="500" value="100">
+
+  <br>
+  <label>Filter scalar: <span id="filt_scalar"></span></label>
+  <input onchange="Evolib.newPopulation(2, this.value); playInbetween(0, 1, 0); Evolib.setFilterMax(this.value); document.getElementById('filt_scalar').innerHTML = this.value" type="range" min="5" max="5000" value="100"> -->
+
+<script language="javascript" type="text/javascript">
+  
+  Evolib.newPopulation(2, 40);
+
+  function playInbetween(ind1, ind2, pos){
+    var genome = Evolib.getInBetweenGenome(ind1, ind2, pos);
+    Evolib.playGenomePoly(genome);
+  }
+  
+</script>
+</body>
+</html>

@@ -134,8 +134,18 @@ var evolib_spec = {
     this.getSynthOutput = function() {
       return currentSynthesizer.getOutputNode();
     }
-
-
+    /**
+     * Set the scalar on the osc freq paramater
+     */
+    this.setOscMax = function(osc_max){
+      this.dsp_funcs.setOscMax(osc_max);
+    }
+    /**
+     * Set the scalar on the filter freq parameter
+     */
+    this.setFilterMax = function(filt_max){
+      this.dsp_funcs.setFilterMax(filt_max);
+    }
     /**
      * Evolve the population from the selected breedIds, which refer to
      * indexes of sounds you want in the current population, e.g. [0,1] for the
@@ -428,8 +438,19 @@ module.exports = {
 module.exports = {
   /** audio context singleton innit */
   audio_context: false,
-  osc_freq_max: 200,
-  filt_freq_max: 2000,
+  // CIE figures
+ osc_freq_max: 200,
+ filt_freq_max: 2000,
+// osc_freq_max: 10,
+// filt_freq_max: 5000,
+
+  setOscMax(osc_max){
+    if (osc_max > 50 && osc_max < 500) this.osc_freq_max = osc_max;
+  },
+  setFilterMax(filt_max){
+    if (filt_max > 200 && filt_max < 4000) this.filt_freq_max = filt_max;
+  },
+
   setContext: function(_context) {
     this.audio_context = _context;
   },
@@ -552,8 +573,7 @@ module.exports = {
         return;
       }
       if (rampTime != undefined && rampTime > 0){
-        console.log('Ramping to '+gain+' in '+rampTime);
-        synthesizer.fx["gain"].gain.linearRampToValueAtTime(gain, that.getContext().currentTime + rampTime);
+         synthesizer.fx["gain"].gain.linearRampToValueAtTime(gain, that.getContext().currentTime + rampTime);
       }
       else {
         synthesizer.fx["gain"].gain.value = gain; 

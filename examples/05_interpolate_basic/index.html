@@ -7,17 +7,14 @@
 <body>
 
   <br/>
-<label>Gain:</label>
-  <input  onmousemove="Evolib.setGain(this.value / 100.0)" type="range" min="0" max="100" value="100">
-
-  <button onclick="Evolib.stop()">stop</button>
-  <button onclick="Evolib.newPopulation(2, 40); Evolib.play(1);">new sounds</button>
+  <button onclick="Evolib.newPopulation(2, 40); playInbetween(0, 1, 0);">new sounds</button>
 
 <br>
   <button onclick="playInbetween(0, 1, 0)">play 1</button>
   <label>Interpolate:</label>
   <input onchange="playInbetween(0, 1, this.value / 100.0)" type="range" min="0" max="100" value="100">
   <button onclick="playInbetween(0, 1, 1)">play 2</button>
+
 
 <script language="javascript" type="text/javascript">
   
